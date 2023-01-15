@@ -7,6 +7,7 @@ use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProjectController extends Controller
@@ -42,6 +43,14 @@ class ProjectController extends Controller
     {
         $formData = $request->all();
         $formData['slug'] = Project::generateSlug($formData['title']);
+
+        // inserimento dell'imagine
+
+        if ($request->hasFile('cover_image')) {
+            $path = Storage::put('post_images', $request->cover_image);
+            $formData['cover_image'] = $path;
+        }
+
         Project::create($formData);
         return redirect()->route('admin.projects.index')->with('message', 'Il post è sato creato con successo');
     }
@@ -78,8 +87,19 @@ class ProjectController extends Controller
     public function update(UpdateProjectRequest $request, Project $project)
     {
 
-        $formData = $request->all();
+        $formData = $request->validated();
         $formData['slug'] = Project::generateSlug($formData['title']);
+        // dd($formData);
+        if ($request->hasFile('cover_image')) {
+            // Cancellare l'immagine precedente se esiste
+            if ($project->cover_image) {
+                Storage::delete($project->cover_image);
+            }
+            $path = Storage::put('post_images', $request->cover_image);
+            $formData['cover_image'] = $path;
+        }
+
+
         $project->update($formData);
 
         return redirect()->route('admin.projects.index')->with('message', "$project->title è stato aggiornato");
